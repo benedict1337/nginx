@@ -81,7 +81,7 @@ jobs:
           digest="${{ steps.build-without-modsec.outputs.digest }}"
           touch "/tmp/digests_without-modsec/${digest#sha256:}"         
       - name: Upload digest
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: digests_without-modsec
           path: /tmp/digests_without-modsec/*
