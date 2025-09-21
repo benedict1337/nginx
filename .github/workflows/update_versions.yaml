@@ -3,7 +3,7 @@ name: NGINX-QuicTLS (Update versions)
 on:
   push:
     branches:
-      - dev
+      - latest
     paths:
       - Dockerfile
       - Dockerfile.without-modsec
@@ -75,5 +75,5 @@ jobs:
           title: Update ${{ matrix.dep.name }} to ${{ steps.getver.outputs.VER }}
           body: Update ${{ matrix.dep.name }} to ${{ steps.getver.outputs.VER }}
           branch: update-version-${{ matrix.dep.var }}-${{ steps.getver.outputs.VER }}
-          base: dev
+          base: latest
           labels: dependencies
