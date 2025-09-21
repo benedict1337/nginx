@@ -43,6 +43,10 @@ jobs:
               | awk -F'/' '{print $3}' | sed "s/^${{ matrix.dep.filter || '' }}//" | sort -V | tail -1)
           fi
           echo "VER=$VER" >> $GITHUB_OUTPUT
+          PATCH=$(git ls-remote --refs "${{ matrix.dep.repo }}" | grep -o 'nginx__dynamic_tls_records_[0-9.]\+\.patch' | sort -V | tail -1)
+          echo "VER=$PATCH" >> $GITHUB_OUTPUT
+          sed -i "s|ARG ${{ matrix.dep.var }}=.*|ARG ${{ matrix.dep.var }}=${PATCH}|g" Dockerfile
+          sed -i "s|ARG ${{ matrix.dep.var }}=.*|ARG ${{ matrix.dep.var }}=${PATCH}|g" Dockerfile.without-modsec || true
           sed -i "s|ARG ${{ matrix.dep.var }}=.*|ARG ${{ matrix.dep.var }}=${VER}|g" Dockerfile
           sed -i "s|ARG ${{ matrix.dep.var }}=.*|ARG ${{ matrix.dep.var }}=${VER}|g" Dockerfile.without-modsec || true
 
