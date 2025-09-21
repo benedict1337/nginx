@@ -54,7 +54,6 @@ jobs:
             ${{ env.DOCKER_IMAGE }}
             ${{ env.GHCR_IMAGE }}
           tags: |
-#           type=raw,value=latest${{ matrix.build-file.suffix }},priority=1000
             type=ref,event=branch,suffix=${{ matrix.build-file.suffix }}
             type=ref,event=tag,suffix=${{ matrix.build-file.suffix }}
             type=sha,suffix=${{ matrix.build-file.suffix }}
