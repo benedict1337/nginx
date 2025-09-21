@@ -36,7 +36,8 @@ jobs:
           if [ "${{ matrix.dep.branch || '' }}" == "main" ]; then
             VER=$(git ls-remote "${{ matrix.dep.repo }}" refs/heads/main | awk '{print $1}')
           elif [ "${{ matrix.dep.name || '' }}" == "TLS Dyn Size Module" ]; then
-            VER=$(git ls-remote --refs "${{ matrix.dep.repo }}" | grep -o 'nginx__dynamic_tls_records_[0-9.]\+\.patch' | sort -V | tail -1)
+            VER=$(git ls-remote "${{ matrix.dep.repo }}" refs/heads/master | awk '{print $1}')
+            PATCH=$(git ls-remote --refs "${{ matrix.dep.repo }}" | grep -o 'nginx__dynamic_tls_records_[0-9.]\+\.patch' | sort -V | tail -1)
           elif [ -n "${{ matrix.dep.branch || '' }}" ]; then
             VER=$(git ls-remote --heads "${{ matrix.dep.repo }}" "${{ matrix.dep.branch }}" \
               | awk -F'/' '{print $3}' | sort -V | tail -1)
@@ -45,8 +46,10 @@ jobs:
               | awk -F'/' '{print $3}' | sed "s/^${{ matrix.dep.filter || '' }}//" | sort -V | tail -1)
           fi
           echo "VER=$VER" >> $GITHUB_OUTPUT
+          echo "VER=$PATCH" >> $GITHUB_OUTPUT
           sed -i "s|ARG ${{ matrix.dep.var }}=.*|ARG ${{ matrix.dep.var }}=${VER}|g" Dockerfile
           sed -i "s|ARG ${{ matrix.dep.var }}=.*|ARG ${{ matrix.dep.var }}=${VER}|g" Dockerfile.without-modsec || true
+          sed -i "s|ARG ${{ matrix.dep.var }}=.*|ARG ${{ matrix.dep.var }}=${PATCH}|g" Dockerfile
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
