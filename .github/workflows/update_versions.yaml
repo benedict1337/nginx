@@ -41,6 +41,7 @@ jobs:
               | sort -V \
               | grep -v rc \
               | tail -1)
+            rm -rf ngx_http_tls_dyn_size
           elif [ "${{ matrix.dep.branch || '' }}" == "main" ]; then
             VER=$(git ls-remote "${{ matrix.dep.repo }}" refs/heads/main | awk '{print $1}')
           elif [ -n "${{ matrix.dep.branch || '' }}" ]; then
