@@ -82,5 +82,5 @@ jobs:
 
       - name: Inspect pushed images
         run: |
-          docker buildx imagetools inspect ${{ env.DOCKER_IMAGE }}:latest${{ matrix.build-file.suffix }}
-          docker buildx imagetools inspect ${{ env.GHCR_IMAGE }}:latest${{ matrix.build-file.suffix }}
+          docker buildx imagetools inspect ${{ env.DOCKER_IMAGE }}:boringssl-test${{ matrix.build-file.suffix }}
+          docker buildx imagetools inspect ${{ env.GHCR_IMAGE }}:boringssl-test${{ matrix.build-file.suffix }}
