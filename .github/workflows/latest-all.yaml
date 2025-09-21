@@ -73,7 +73,7 @@ jobs:
         with:
           context: .
           file: ${{ matrix.build-file.file }}
-          platforms: ${{ matrix.platform | join(',') }}
+          platforms: ${{ join(matrix.platform, ',') }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
