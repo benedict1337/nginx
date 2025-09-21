@@ -3,7 +3,7 @@ FROM alpine:latest as build
 ARG BUILD
 
 ARG NGX_MAINLINE_VER=1.29.1
-ARG QUICTLS_VER=openssl-3.3.0+quic
+ARG BORINGSSL_VER=main
 ARG MODSEC_VER=v3.0.14
 ARG NGX_BROTLI=master
 ARG NGX_HEADERS_MORE=v0.39
@@ -40,7 +40,7 @@ RUN apk add --no-cache \
         libfuzzy2-dev 
 
    
-RUN git clone --recursive --branch "$QUICTLS_VER" https://github.com/quictls/openssl /src/openssl 
+RUN git clone --recursive --branch "$BORINGSSL_VER" https://boringssl.googlesource.com/boringssl /src/boringssl 
 
 # ModSecurity
 
@@ -107,8 +107,8 @@ RUN cd /src/nginx \
         --with-pcre \
         --without-poll_module \
         --without-select_module \
-        --with-openssl="/src/openssl" \
-        --with-openssl-opt="no-ssl3 no-ssl3-method no-weak-ssl-ciphers" \
+        --with-cc-opt="-I../src/boringssl/include" \
+        --with-ld-opt="-L../src/boringssl/build -lstdc++" \
         --with-mail=dynamic \
         --with-mail_ssl_module \
         --with-stream=dynamic \

@@ -1,12 +1,12 @@
 
-# **NGINX** Docker built with **QuicTLS**
+# **NGINX** Docker built with **BoringSSL**
 
-A simple NGINX Docker image compiled with **QuicTLS**.
+A simple NGINX Docker image compiled with **BoringSSL**.
 
 
 ## Features
 
-- **QuicTLS**
+- **BoringSSL**
 - **HTTP/3 QUIC** and **0-RTT** support
 - **Dynamic TLS** records patch support
 - **Brotli** support
@@ -21,7 +21,7 @@ A simple NGINX Docker image compiled with **QuicTLS**.
 To deploy this docker image run
 
 ```bash
-docker run -d --restart unless-stopped -p 80:80 -p 443:443 -p 443:443/udp -v ./nginx-config:/etc/nginx benedicthu/nginx-quictls
+docker run -d --restart unless-stopped -p 80:80 -p 443:443 -p 443:443/udp -v ./nginx-config:/etc/nginx benedicthu/nginx-quictls:boringssl-test
 ```
 
 Docker-Compose
@@ -30,7 +30,7 @@ Docker-Compose
 version: '3.9'
 services:
     nginx-quictls:
-        image: benedicthu/nginx-quictls
+        image: benedicthu/nginx-quictls:boringssl-test
         volumes:
             - './nginx-config:/etc/nginx'
         ports:

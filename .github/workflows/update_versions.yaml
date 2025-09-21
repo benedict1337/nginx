@@ -3,7 +3,7 @@ name: NGINX-QuicTLS (Update versions)
 on:
   push:
     branches:
-      - latest
+      - boringssl-test
     paths:
       - Dockerfile
       - Dockerfile.without-modsec
@@ -19,7 +19,7 @@ jobs:
         dep:
           - { name: "NGINX Mainline", var: "NGX_MAINLINE_VER", repo: "https://github.com/nginx/nginx.git", filter: "release-" }
           - { name: "ModSecurity", var: "MODSEC_VER", repo: "https://github.com/owasp-modsecurity/ModSecurity.git" }
-          - { name: "QuicTLS", var: "QUICTLS_VER", repo: "https://github.com/quictls/openssl.git", branch: "openssl-*.*.*+quic" }
+          - { name: "BoringSSL", var: "BORINGSSL_VER", repo: "https://github.com/quictls/openssl.git", branch: "openssl-*.*.*+quic" }
           - { name: "Headers More Module", var: "NGX_HEADERS_MORE", repo: "https://github.com/openresty/headers-more-nginx-module.git" }
           - { name: "NJS Module", var: "NGX_NJS", repo: "https://github.com/nginx/njs.git" }
           - { name: "NGX ModSecurity Module", var: "NGX_MODSEC", repo: "https://github.com/SpiderLabs/ModSecurity-nginx.git" }
@@ -75,5 +75,5 @@ jobs:
           title: Update ${{ matrix.dep.name }} to ${{ steps.getver.outputs.VER }}
           body: Update ${{ matrix.dep.name }} to ${{ steps.getver.outputs.VER }}
           branch: update-version-${{ matrix.dep.var }}-${{ steps.getver.outputs.VER }}
-          base: latest
+          base: boringssl-test
           labels: dependencies
