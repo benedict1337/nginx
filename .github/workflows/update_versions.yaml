@@ -24,7 +24,7 @@ jobs:
           - { name: "NJS Module", var: "NGX_NJS", repo: "https://github.com/nginx/njs.git" }
           - { name: "NGX ModSecurity Module", var: "NGX_MODSEC", repo: "https://github.com/SpiderLabs/ModSecurity-nginx.git" }
           - { name: "GeoIP2 Module", var: "NGX_GEOIP2", repo: "https://github.com/leev/ngx_http_geoip2_module.git" }
-          - { name: "TLS Dyn Size Module", var: "NGX_TLS_DYN_SIZE", repo: "zoey2936/ngx_http_tls_dyn_size", method: "api-files" }
+          - { name: "TLS Dyn Size Module", var: "NGX_TLS_DYN_SIZE", repo: "https://github.com/nginx-modules/ngx_http_tls_dyn_size.git" }
 
     steps:
       - name: Checkout
@@ -34,11 +34,12 @@ jobs:
         id: getver
         run: |
           VER=""
-          if [ "${{ matrix.dep.method || '' }}" == "api-files" ]; then
-            VER=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/${{ matrix.dep.repo }}/contents/" \
-              | jq -r '.[].name' \
-              | grep '\.patch$' \
+          if [ "${{ matrix.dep.var || '' }}" == "NGX_TLS_DYN_SIZE" ]; then
+            git clone https://github.com/nginx-modules/ngx_http_tls_dyn_size ngx_http_tls_dyn_size
+            VER=$(ls ngx_http_tls_dyn_size/nginx__dynamic_tls_records_*.patch \
+              | sed "s|ngx_http_tls_dyn_size/nginx__dynamic_tls_records_\([0-9.]\+\)+.patch|\1|g" \
               | sort -V \
+              | grep -v rc \
               | tail -1)
           elif [ "${{ matrix.dep.branch || '' }}" == "main" ]; then
             VER=$(git ls-remote "${{ matrix.dep.repo }}" refs/heads/main | awk '{print $1}')
