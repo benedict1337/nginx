@@ -24,7 +24,7 @@ jobs:
           - { name: "NJS Module", var: "NGX_NJS", repo: "https://github.com/nginx/njs.git" }
           - { name: "NGX ModSecurity Module", var: "NGX_MODSEC", repo: "https://github.com/SpiderLabs/ModSecurity-nginx.git" }
           - { name: "GeoIP2 Module", var: "NGX_GEOIP2", repo: "https://github.com/leev/ngx_http_geoip2_module.git" }
-          - { name: "TLS Dyn Size Module", var: "NGX_TLS_DYN_SIZE", repo: "https://github.com/nginx-modules/ngx_http_tls_dyn_size", method: "api-files" }
+          - { name: "TLS Dyn Size Module", var: "NGX_TLS_DYN_SIZE", repo: "zoey2936/ngx_http_tls_dyn_size", method: "api-files" }
 
     steps:
       - name: Checkout
