@@ -24,7 +24,7 @@ jobs:
           - { name: "NJS Module", var: "NGX_NJS", repo: "https://github.com/nginx/njs.git" }
           - { name: "NGX ModSecurity Module", var: "NGX_MODSEC", repo: "https://github.com/SpiderLabs/ModSecurity-nginx.git" }
           - { name: "GeoIP2 Module", var: "NGX_GEOIP2", repo: "https://github.com/leev/ngx_http_geoip2_module.git" }
-          - { name: "TLS Dyn Size Module", var: "NGX_TLS_DYN_SIZE", repo: "https://github.com/nginx-modules/ngx_http_tls_dyn_size.git"}
+          - { name: "TLS Dyn Size Module", var: "NGX_TLS_DYN_SIZE", repo: "zoey2936/ngx_http_tls_dyn_size", method: "api-files" }
 
     steps:
       - name: Checkout
@@ -33,7 +33,14 @@ jobs:
       - name: Get latest version
         id: getver
         run: |
-          if [ "${{ matrix.dep.branch || '' }}" == "main" ]; then
+          VER=""
+          if [ "${{ matrix.dep.method || '' }}" == "api-files" ]; then
+            VER=$(curl -s "https://api.github.com/repos/${{ matrix.dep.repo }}/contents/" \
+              | jq -r '.[].name' \
+              | grep '\.patch$' \
+              | sort -V \
+              | tail -1)
+          elif [ "${{ matrix.dep.branch || '' }}" == "main" ]; then
             VER=$(git ls-remote "${{ matrix.dep.repo }}" refs/heads/main | awk '{print $1}')
           elif [ -n "${{ matrix.dep.branch || '' }}" ]; then
             VER=$(git ls-remote --heads "${{ matrix.dep.repo }}" "${{ matrix.dep.branch }}" \
@@ -46,6 +53,12 @@ jobs:
               | sort -V \
               | tail -1)
           fi
+          
+          if [ -z "$VER" ]; then
+            echo "Error: Could not determine version for ${{ matrix.dep.name }}"
+            exit 1
+          fi
+
           echo "VER=$VER" >> $GITHUB_OUTPUT
           sed -i "s|ARG ${{ matrix.dep.var }}=.*|ARG ${{ matrix.dep.var }}=${VER}|g" Dockerfile
           sed -i "s|ARG ${{ matrix.dep.var }}=.*|ARG ${{ matrix.dep.var }}=${VER}|g" Dockerfile.without-modsec || true
