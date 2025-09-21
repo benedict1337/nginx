@@ -35,11 +35,11 @@ RUN apk add --no-cache \
         libmaxminddb-dev 
 
    
-RUN git clone --recursive --branch "$BORINGSSL_VER" https://boringssl.googlesource.com/boringssl /src/boringssl 
+RUN git clone --depth 1 --recursive --branch "$BORINGSSL_VER" https://boringssl.googlesource.com/boringssl /src/boringssl 
 
 # Modules
 
-RUN (git clone --recursive --branch "$NGX_BROTLI" https://github.com/google/ngx_brotli /src/ngx_brotli \
+RUN (git clone --depth 1 --recursive --branch "$NGX_BROTLI" https://github.com/google/ngx_brotli /src/ngx_brotli \
         && git clone --recursive --branch "$NGX_HEADERS_MORE" https://github.com/openresty/headers-more-nginx-module /src/headers-more-nginx-module \
         && git clone --recursive --branch "$NGX_NJS" https://github.com/nginx/njs /src/njs \
         && git clone --recursive --branch "$NGX_GEOIP2" https://github.com/leev/ngx_http_geoip2_module /src/ngx_http_geoip2_module) 

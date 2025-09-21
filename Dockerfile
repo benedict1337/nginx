@@ -40,11 +40,11 @@ RUN apk add --no-cache \
         libfuzzy2-dev 
 
    
-RUN git clone --recursive --branch "$BORINGSSL_VER" https://boringssl.googlesource.com/boringssl /src/boringssl 
+RUN git clone --depth 1 --recursive --branch "$BORINGSSL_VER" https://boringssl.googlesource.com/boringssl /src/boringssl 
 
 # ModSecurity
 
-RUN (git clone --recursive --branch "$MODSEC_VER" https://github.com/SpiderLabs/ModSecurity /src/ModSecurity \
+RUN (git clone --depth 1 --recursive --branch "$MODSEC_VER" https://github.com/SpiderLabs/ModSecurity /src/ModSecurity \
         && sed -i "s|SecRuleEngine.*|SecRuleEngine On|g" /src/ModSecurity/modsecurity.conf-recommended \
         && sed -i "s|unicode.mapping|/etc/nginx/modsec/unicode.mapping|g" /src/ModSecurity/modsecurity.conf-recommended \
         && echo -e "Include /etc/nginx/modsec/modsecurity.conf\nInclude /etc/nginx/modsec/modsecurity-crs/crs-setup.conf\nInclude /etc/nginx/modsec/modsecurity-crs/rules/*.conf" > /src/ModSecurity/owasp-crs_main.conf \
@@ -57,7 +57,7 @@ RUN (git clone --recursive --branch "$MODSEC_VER" https://github.com/SpiderLabs/
 
 # OWASP-CRS
 
-RUN (git clone --recursive --branch v4.0/main https://github.com/coreruleset/coreruleset /src/modsecurity-crs \
+RUN (git clone --depth 1 --recursive --branch v4.0/main https://github.com/coreruleset/coreruleset /src/modsecurity-crs \
         && cp /src/modsecurity-crs/crs-setup.conf.example /src/modsecurity-crs/crs-setup.conf \
         && cp /src/modsecurity-crs/rules/REQUEST-900-EXCLUSION-RULES-BEFORE-CRS.conf.example /src/modsecurity-crs/rules/REQUEST-900-EXCLUSION-RULES-BEFORE-CRS.conf \
         && rm -rf /src/modsecurity-crs/.git \
@@ -66,7 +66,7 @@ RUN (git clone --recursive --branch v4.0/main https://github.com/coreruleset/cor
 
 # Modules
 
-RUN (git clone --recursive --branch "$NGX_BROTLI" https://github.com/google/ngx_brotli /src/ngx_brotli \
+RUN (git clone --depth 1 --recursive --branch "$NGX_BROTLI" https://github.com/google/ngx_brotli /src/ngx_brotli \
         && git clone --recursive --branch "$NGX_HEADERS_MORE" https://github.com/openresty/headers-more-nginx-module /src/headers-more-nginx-module \
         && git clone --recursive --branch "$NGX_NJS" https://github.com/nginx/njs /src/njs \
         && git clone --recursive --branch "$NGX_MODSEC" https://github.com/SpiderLabs/ModSecurity-nginx /src/ModSecurity-nginx \
