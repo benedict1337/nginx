@@ -3,7 +3,7 @@ name: NGINX-QuicTLS (all builds)
 on:
   push:
     branches:
-      - latest
+      - dev
     paths:
       - Dockerfile
       - Dockerfile.without-modsec
