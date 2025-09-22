@@ -70,7 +70,7 @@ jobs:
 
       - name: Export digest
         run: |
-          PLATFORM=${{ matrix.platform // '/' / '-' }}
+          PLATFORM=$(echo "${{ matrix.platform }}" | sed 's/\//-/g')
           mkdir -p /tmp/digests/${{ matrix.build-file.suffix }}
           digest="${{ steps.build.outputs.digest }}"
           echo $digest > /tmp/digests/${{ matrix.build-file.suffix }}/$PLATFORM.txt
