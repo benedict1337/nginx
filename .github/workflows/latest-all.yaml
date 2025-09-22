@@ -3,7 +3,7 @@ name: NGINX-BoringSSL (all builds)
 on:
   push:
     branches:
-      - ${{ github.ref_name }}
+      - boringssl-test
     paths:
       - Dockerfile
       - Dockerfile.without-modsec
