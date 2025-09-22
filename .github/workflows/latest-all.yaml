@@ -79,7 +79,7 @@ jobs:
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ 'digests' + matrix.build-file.suffix + '-' + matrix.platform | replace('/', '-') }}
+          name: ${{ format('digests{}-{}', matrix.build-file.suffix, replace(matrix.platform, '/', '-')) }}
           path: /tmp/digests${{ matrix.build-file.suffix }}/*
           retention-days: 1
 
