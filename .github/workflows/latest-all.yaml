@@ -3,7 +3,7 @@ name: NGINX-BoringSSL (all builds)
 on:
   push:
     branches:
-      - boringssl-test
+      - ${{ github.ref_name }}
     paths:
       - Dockerfile
       - Dockerfile.without-modsec
@@ -41,80 +41,73 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        with:
-          install: true
-          driver-opts: image=moby/buildkit:latest
-          use: true
 
-      - name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v5
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v5
         with:
-          images: |
-            ${{ env.DOCKER_IMAGE }}
-            ${{ env.GHCR_IMAGE }}
-          tags: |
-            type=ref,event=branch,suffix=${{ matrix.build-file.suffix }}
-            type=ref,event=tag,suffix=${{ matrix.build-file.suffix }}
-          flavor: |
-            latest=false
+          context: .
+          file: ${{ matrix.build-file.file }}
+          platforms: ${{ matrix.platform }}
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.GHCR_IMAGE }}:cache${{ matrix.build-file.suffix }}
+          cache-to: type=registry,ref=${{ env.GHCR_IMAGE }}:cache${{ matrix.build-file.suffix }},mode=max
+          outputs: type=image,name=${{ env.GHCR_IMAGE }},push-by-digest=true,name-canonical=true,push=true
 
-      - name: Login to Docker Hub
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests${{ matrix.build-file.suffix }}
+          digest="${{ steps.build.outputs.digest }}"
+          echo $digest > /tmp/digests${{ matrix.build-file.suffix }}/${{ matrix.platform }}.txt
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests${{ matrix.build-file.suffix }}
+          path: /tmp/digests${{ matrix.build-file.suffix }}/*
+          retention-days: 1
+
+  push:
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      matrix:
+        build-file:
+          - { file: Dockerfile, suffix: "" }
+          - { file: Dockerfile.without-modsec, suffix: "-without_modsec" }
+
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          name: digests${{ matrix.build-file.suffix }}
+          path: /tmp/digests${{ matrix.build-file.suffix }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to registries
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Login to GitHub Container Registry
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push (with cache)
-        id: build
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ${{ matrix.build-file.file }}
-          platforms: ${{ join(matrix.platform, ',') }}
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            BUILD=${{ github.sha }}-${{ steps.meta.outputs.version }}
-          cache-from: |
-            type=registry,ref=${{ env.GHCR_IMAGE }}:cache${{ matrix.build-file.suffix }}
-            type=registry,ref=${{ env.DOCKER_IMAGE }}:cache${{ matrix.build-file.suffix }}
-          cache-to: |
-            type=registry,ref=${{ env.GHCR_IMAGE }}:cache${{ matrix.build-file.suffix }},mode=max
-            type=registry,ref=${{ env.DOCKER_IMAGE }}:cache${{ matrix.build-file.suffix }},mode=max
-
-      - name: Export digest
+      - name: Create and push manifest (DockerHub + GHCR)
         run: |
-          echo "DOCKER_DIGEST=${{ env.DOCKER_IMAGE }}@${{ steps.build.outputs.digest }}" >> $GITHUB_ENV
-          echo "GHCR_DIGEST=${{ env.GHCR_IMAGE }}@${{ steps.build.outputs.digest }}" >> $GITHUB_ENV
-
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v7
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          signoff: true
-          delete-branch: true
-          commit-message: Update BoringSSL build (with cache + digests)
-          title: "Update BoringSSL build"
-          body: |
-            ### 🔄 Automated build update
-
-            ✅ Build completed successfully with cache optimization.
-
-            **Digests:**
-            - DockerHub → `${{ env.DOCKER_DIGEST }}`
-            - GHCR → `${{ env.GHCR_DIGEST }}`
-
-            _Triggered by: `${{ github.event_name }}`_
-          branch: update-boringssl-build-${{ github.sha }}
-          base: boringssl-test
-          labels: dependencies, docker, automated
+          TAG="boringssl-test${{ matrix.build-file.suffix }}"
+          docker buildx imagetools create \
+            -t ${{ env.DOCKER_IMAGE }}:$TAG \
+            -t ${{ env.GHCR_IMAGE }}:$TAG \
+            $(cat /tmp/digests${{ matrix.build-file.suffix }}/*.txt)
+          
+          docker buildx imagetools inspect ${{ env.DOCKER_IMAGE }}:$TAG
+          docker buildx imagetools inspect ${{ env.GHCR_IMAGE }}:$TAG
 
