@@ -70,7 +70,7 @@ jobs:
 
       - name: Export digest
         run: |
-          echo "PLATFORM=$(echo "${{ matrix.platform }}" | sed 's/\//-/g')" >> $GITHUB_ENV
+          echo "PLATFORM=${{ matrix.platform }}" | sed 's/\//-/g' >> $GITHUB_ENV
           mkdir -p /tmp/digests${{ matrix.build-file.suffix }}
           digest="${{ steps.build.outputs.digest }}"
           echo $digest > /tmp/digests${{ matrix.build-file.suffix }}/${{ env.PLATFORM }}.txt
@@ -96,7 +96,7 @@ jobs:
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
-          name: digests${{ matrix.build-file.suffix }}
+          name: digests${{ matrix.build-file.suffix }}-${{ env.PLATFORM }}
           path: /tmp/digests${{ matrix.build-file.suffix }}
 
       - name: Set up Docker Buildx
