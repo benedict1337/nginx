@@ -68,9 +68,17 @@ jobs:
           cache-to: type=registry,ref=${{ env.GHCR_IMAGE }}:cache${{ matrix.build-file.suffix }},mode=max
           outputs: type=image,name=${{ env.GHCR_IMAGE }},push-by-digest=true,name-canonical=true,push=true
 
+      - name: Set PLATFORM env variable
+        run: |
+          PLATFORM="${{ matrix.platform }}"
+          PLATFORM="${PLATFORM//\//-}"
+          echo "PLATFORM=$PLATFORM" >> $GITHUB_ENV
+
+      - name: Show PLATFORM
+        run: echo "Platform is $PLATFORM ${{ env.PLATFORM }}"
+
       - name: Export digest
         run: |
-          echo "PLATFORM=${{ matrix.platform }}" | sed 's/\//-/g' >> $GITHUB_ENV
           mkdir -p /tmp/digests${{ matrix.build-file.suffix }}
           digest="${{ steps.build.outputs.digest }}"
           echo $digest > /tmp/digests${{ matrix.build-file.suffix }}/${{ env.PLATFORM }}.txt
