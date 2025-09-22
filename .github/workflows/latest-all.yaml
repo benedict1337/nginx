@@ -1,4 +1,4 @@
-name: NGINX-QuicTLS (all builds)
+name: NGINX-BoringSSL (all builds)
 
 on:
   push:
@@ -14,7 +14,7 @@ permissions:
   packages: write
 
 env:
-  DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/nginx-quictls
+  DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/nginx-boringssl
   GHCR_IMAGE: ghcr.io/${{ github.repository }}
 
 jobs:
@@ -56,6 +56,8 @@ jobs:
           tags: |
             type=ref,event=branch,suffix=${{ matrix.build-file.suffix }}
             type=ref,event=tag,suffix=${{ matrix.build-file.suffix }}
+          flavor: |
+            latest=false
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -70,19 +72,49 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push multi-arch image
+      - name: Build and push (with cache)
+        id: build
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ${{ matrix.build-file.file }}
-          platforms: linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6
+          platforms: ${{ join(matrix.platform, ',') }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             BUILD=${{ github.sha }}-${{ steps.meta.outputs.version }}
+          cache-from: |
+            type=registry,ref=${{ env.GHCR_IMAGE }}:cache${{ matrix.build-file.suffix }}
+            type=registry,ref=${{ env.DOCKER_IMAGE }}:cache${{ matrix.build-file.suffix }}
+          cache-to: |
+            type=registry,ref=${{ env.GHCR_IMAGE }}:cache${{ matrix.build-file.suffix }},mode=max
+            type=registry,ref=${{ env.DOCKER_IMAGE }}:cache${{ matrix.build-file.suffix }},mode=max
 
-      - name: Inspect pushed images
+      - name: Export digest
         run: |
-          docker buildx imagetools inspect ${{ env.DOCKER_IMAGE }}:boringssl-test${{ matrix.build-file.suffix }}
-          docker buildx imagetools inspect ${{ env.GHCR_IMAGE }}:boringssl-test${{ matrix.build-file.suffix }}
+          echo "DOCKER_DIGEST=${{ env.DOCKER_IMAGE }}@${{ steps.build.outputs.digest }}" >> $GITHUB_ENV
+          echo "GHCR_DIGEST=${{ env.GHCR_IMAGE }}@${{ steps.build.outputs.digest }}" >> $GITHUB_ENV
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          signoff: true
+          delete-branch: true
+          commit-message: Update BoringSSL build (with cache + digests)
+          title: "Update BoringSSL build"
+          body: |
+            ### 🔄 Automated build update
+
+            ✅ Build completed successfully with cache optimization.
+
+            **Digests:**
+            - DockerHub → `${{ env.DOCKER_DIGEST }}`
+            - GHCR → `${{ env.GHCR_DIGEST }}`
+
+            _Triggered by: `${{ github.event_name }}`_
+          branch: update-boringssl-build-${{ github.sha }}
+          base: boringssl-test
+          labels: dependencies, docker, automated
+
