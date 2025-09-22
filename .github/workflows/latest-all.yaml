@@ -138,10 +138,8 @@ jobs:
           DIGEST_FILES="/tmp/digests${{ matrix.build-file.suffix }}/*.txt"
           docker buildx imagetools create \
             -t ${{ env.DOCKER_IMAGE }}:$TAG \
-            $(cat $DIGEST_FILES)
-          docker buildx imagetools create \
             -t ${{ env.GHCR_IMAGE }}:$TAG \
-            $(cat $DIGEST_FILES) 
+            $(cat $DIGEST_FILES)
 
           docker buildx imagetools inspect ${{ env.DOCKER_IMAGE }}:$TAG
           docker buildx imagetools inspect ${{ env.GHCR_IMAGE }}:$TAG
