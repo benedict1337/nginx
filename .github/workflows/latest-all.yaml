@@ -140,7 +140,7 @@ jobs:
             $(for f in /tmp/digests${{ matrix.build-file.suffix }}/*.txt; do echo "${{ env.DOCKER_IMAGE }}@$(cat $f)"; done)
           docker buildx imagetools create \
             -t ${{ env.GHCR_IMAGE }}:$TAG \
-            $(for f in /tmp/digests${{ matrix.build-file.suffix }}/*.txt; do echo "${{ env.GHCR_IMAGE }}@$(cat $f)"; done)
+            ${{ env.DOCKER_IMAGE }}:$TAG
 
           docker buildx imagetools inspect ${{ env.DOCKER_IMAGE }}:$TAG
           docker buildx imagetools inspect ${{ env.GHCR_IMAGE }}:$TAG
