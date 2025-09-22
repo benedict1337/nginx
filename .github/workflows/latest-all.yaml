@@ -70,9 +70,10 @@ jobs:
 
       - name: Export digest
         run: |
+          PLATFORM=${{ matrix.platform // '/' / '-' }}
           mkdir -p /tmp/digests/${{ matrix.build-file.suffix }}
           digest="${{ steps.build.outputs.digest }}"
-          echo $digest > /tmp/digests/${{ matrix.build-file.suffix }}/nginx.txt
+          echo $digest > /tmp/digests/${{ matrix.build-file.suffix }}/$PLATFORM.txt
 
       - name: Upload digest
         uses: actions/upload-artifact@v4
