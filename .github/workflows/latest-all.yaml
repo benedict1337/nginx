@@ -21,7 +21,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     outputs:
-      PLATFORM-VAR: ${{ steps.platform-var.outputs.platform-var }}
+      platform: ${{ steps.platform-var.outputs.PLATFORM }}
     strategy:
       fail-fast: false
       matrix:
@@ -30,9 +30,9 @@ jobs:
           - { file: Dockerfile.without-modsec, suffix: "-without_modsec" }
         platform:
           - linux/amd64
-          - linux/arm64
-          - linux/arm/v7
-          - linux/arm/v6
+          # - linux/arm64
+          # - linux/arm/v7
+          # - linux/arm/v6
 
     steps:
       - name: Checkout
@@ -105,10 +105,13 @@ jobs:
           - { file: Dockerfile.without-modsec, suffix: "-without_modsec" }
 
     steps:
+      - name: test
+        run: |
+          echo ${{ needs.build.outputs.platform }}
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
-          name: digests${{ matrix.build-file.suffix }}-${{ needs.build.outputs.PLATFORM_VAR }}
+          name: digests${{ matrix.build-file.suffix }}-${{ needs.build.outputs.platform }}
           path: /tmp/digests${{ matrix.build-file.suffix }}
 
       - name: Set up Docker Buildx
@@ -130,12 +133,13 @@ jobs:
       - name: Create and push manifest (DockerHub + GHCR)
         run: |
           TAG="boringssl-test${{ matrix.build-file.suffix }}"
+          DIGEST_FILES="/tmp/digests${{ matrix.build-file.suffix }}/*.txt"
           docker buildx imagetools create \
             -t ${{ env.DOCKER_IMAGE }}:$TAG \
-            $(cat /tmp/digests${{ matrix.build-file.suffix }}/*.txt)
+            $(cat $DIGEST_FILES)
           docker buildx imagetools create \
             -t ${{ env.GHCR_IMAGE }}:$TAG \
-            $(cat /tmp/digests${{ matrix.build-file.suffix }}/*.txt) 
+            $(cat $DIGEST_FILES) 
 
           docker buildx imagetools inspect ${{ env.DOCKER_IMAGE }}:$TAG
           docker buildx imagetools inspect ${{ env.GHCR_IMAGE }}:$TAG
