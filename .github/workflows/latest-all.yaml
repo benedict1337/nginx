@@ -70,16 +70,16 @@ jobs:
 
       - name: Export digest
         run: |
-          PLATFORM=$(echo "${{ matrix.platform }}" | sed 's/\//-/g')
+          echo "PLATFORM=$(echo "${{ matrix.platform }}" | sed 's/\//-/g')" >> $GITHUB_ENV
           mkdir -p /tmp/digests${{ matrix.build-file.suffix }}
           digest="${{ steps.build.outputs.digest }}"
-          echo $digest > /tmp/digests${{ matrix.build-file.suffix }}/$PLATFORM.txt
+          echo $digest > /tmp/digests${{ matrix.build-file.suffix }}/${{ env.PLATFORM }}.txt
           ls /tmp/digests${{ matrix.build-file.suffix }}
 
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ format('digests{}-{}', matrix.build-file.suffix, replace(matrix.platform, '/', '-')) }}
+          name: digests${{ matrix.build-file.suffix }}-${{ env.PLATFORM }}
           path: /tmp/digests${{ matrix.build-file.suffix }}/*
           retention-days: 1
 
