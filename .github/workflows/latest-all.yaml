@@ -137,11 +137,10 @@ jobs:
           TAG="boringssl-test${{ matrix.build-file.suffix }}"
           docker buildx imagetools create \
             -t ${{ env.DOCKER_IMAGE }}:$TAG \
-            -t ${{ env.GHCR_IMAGE }}:$TAG \
-            /tmp/digests${{ matrix.build-file.suffix }}/*.txt
+            $(for f in /tmp/digests${{ matrix.build-file.suffix }}/*.txt; do echo "${{ env.DOCKER_IMAGE }}@$(cat $f)"; done)
           docker buildx imagetools create \
             -t ${{ env.GHCR_IMAGE }}:$TAG \
-            /tmp/digests${{ matrix.build-file.suffix }}/*.txt
+            $(for f in /tmp/digests${{ matrix.build-file.suffix }}/*.txt; do echo "${{ env.GHCR_IMAGE }}@$(cat $f)"; done)
 
           docker buildx imagetools inspect ${{ env.DOCKER_IMAGE }}:$TAG
           docker buildx imagetools inspect ${{ env.GHCR_IMAGE }}:$TAG
