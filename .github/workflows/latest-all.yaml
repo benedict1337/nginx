@@ -68,7 +68,9 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=registry,ref=${{ env.GHCR_IMAGE }}:cache${{ matrix.build-file.suffix }}
           cache-to: type=registry,ref=${{ env.GHCR_IMAGE }}:cache${{ matrix.build-file.suffix }},mode=max
-          outputs: type=image,name=${{ env.GHCR_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          outputs: |
+            type=image,name=${{ env.GHCR_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+            type=image,name=${{ env.DOCKER_IMAGE }},push-by-digest=true,name-canonical=true,push=true
 
       - name: Set PLATFORM env variable
         id: platform-var
