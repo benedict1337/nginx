@@ -99,8 +99,22 @@ jobs:
         build-file:
           - { file: Dockerfile, suffix: "" }
           - { file: Dockerfile.without-modsec, suffix: "-without_modsec" }
+        platform:
+          - linux/amd64
+          - linux/arm64
+          - linux/arm/v7
+          - linux/arm/v6
 
     steps:
+      - name: Set PLATFORM env variable
+        run: |
+          PLATFORM="${{ matrix.platform }}"
+          PLATFORM="${PLATFORM//\//-}"
+          echo "PLATFORM=$PLATFORM" >> $GITHUB_ENV
+
+      - name: Show PLATFORM
+        run: echo "Platform is $PLATFORM ${{ env.PLATFORM }}"
+
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
@@ -139,4 +153,3 @@ jobs:
           
           docker buildx imagetools inspect ${{ env.DOCKER_IMAGE }}:$TAG
           docker buildx imagetools inspect ${{ env.GHCR_IMAGE }}:$TAG
-
