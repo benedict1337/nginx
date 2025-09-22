@@ -70,9 +70,9 @@ jobs:
 
       - name: Export digest
         run: |
-          mkdir -p /tmp/digests${{ matrix.build-file.suffix }}
+          mkdir -p /tmp/digests/${{ matrix.build-file.suffix }}
           digest="${{ steps.build.outputs.digest }}"
-          echo $digest > /tmp/digests${{ matrix.build-file.suffix }}/${{ matrix.platform }}.txt
+          echo $digest > /tmp/digests/${{ matrix.build-file.suffix }}/${{ matrix.platform }}.txt
 
       - name: Upload digest
         uses: actions/upload-artifact@v4
@@ -95,7 +95,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: digests${{ matrix.build-file.suffix }}
-          path: /tmp/digests${{ matrix.build-file.suffix }}
+          path: /tmp/digests/${{ matrix.build-file.suffix }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -118,14 +118,14 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-          
+
       - name: Create and push manifest (DockerHub + GHCR)
         run: |
           TAG="boringssl-test${{ matrix.build-file.suffix }}"
           docker buildx imagetools create \
             -t ${{ env.DOCKER_IMAGE }}:$TAG \
             -t ${{ env.GHCR_IMAGE }}:$TAG \
-            $(cat /tmp/digests${{ matrix.build-file.suffix }}/*.txt)
+            $(cat /tmp/digests/${{ matrix.build-file.suffix }}/*.txt)
           
           docker buildx imagetools inspect ${{ env.DOCKER_IMAGE }}:$TAG
           docker buildx imagetools inspect ${{ env.GHCR_IMAGE }}:$TAG
