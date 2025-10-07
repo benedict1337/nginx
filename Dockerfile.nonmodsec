@@ -1,4 +1,4 @@
-FROM alpine:latest as build
+FROM alpine:latest AS build
 
 ARG BUILD
 
@@ -75,7 +75,6 @@ RUN cd /src/nginx \
         --with-pcre \
         --without-poll_module \
         --without-select_module \
-        --with-openssl \
         --with-mail=dynamic \
         --with-mail_ssl_module \
         --with-stream=dynamic \
@@ -103,7 +102,7 @@ RUN cd /src/nginx \
     && strip -s /usr/sbin/nginx \
     && strip -s /usr/lib/nginx/modules/*.so
 
-FROM alpine:latest
+FROM alpine:latest AS production
 
 COPY --from=build /etc/nginx /etc/nginx
 COPY --from=build /usr/sbin/nginx   /usr/sbin/nginx
