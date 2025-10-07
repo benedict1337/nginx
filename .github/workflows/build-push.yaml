@@ -187,5 +187,5 @@ jobs:
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "ℹ️ Release $tag already exists. Skipping."
           else
-            gh release create "$tag" --title "NGINX ${{ env.NGX_MAINLINE_VER }}" --notes "Automated build for NGINX ${{ env.NGX_MAINLINE_VER }}"
+            gh release create "$tag" --generate-notes"
           fi
