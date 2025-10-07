@@ -8,7 +8,6 @@ A **lightweight NGINX Docker image**, optimized for modern web protocols, high p
 
 ## ✨ Key Features
 
-- 🔐 **BoringSSL** for enhanced security  
 - 🚀 **HTTP/3 (QUIC)** and **0-RTT** support for faster connections  
 - ⚡ Dynamic **TLS record patching**  
 - 📦 **Brotli compression** for optimized content delivery  
