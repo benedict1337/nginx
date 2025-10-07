@@ -3,14 +3,13 @@ FROM alpine:latest as build
 ARG BUILD
 
 ARG NGX_MAINLINE_VER=1.29.1
-ARG QUICTLS_VER=openssl-3.3.0+quic
 ARG MODSEC_VER=v3.0.14
 ARG NGX_BROTLI=master
 ARG NGX_HEADERS_MORE=v0.39
 ARG NGX_NJS=0.8.7
 ARG NGX_MODSEC=v1.0.4
 ARG NGX_GEOIP2=3.4
-ARG NGX_TLS_DYN_SIZE=1.27.5
+ARG NGX_TLS_DYN_SIZE=nginx__dynamic_tls_records_1.27.5+.patch
 
 WORKDIR /src
 
@@ -38,9 +37,6 @@ RUN apk add --no-cache \
         geoip-dev \
         libmaxminddb-dev \
         libfuzzy2-dev 
-
-   
-RUN git clone --recursive --branch "$QUICTLS_VER" https://github.com/quictls/openssl /src/openssl 
 
 # ModSecurity
 
@@ -76,10 +72,10 @@ RUN (git clone --recursive --branch "$NGX_BROTLI" https://github.com/google/ngx_
 
 RUN (wget https://nginx.org/download/nginx-"$NGX_MAINLINE_VER".tar.gz -O - | tar xzC /src \
         && mv /src/nginx-"$NGX_MAINLINE_VER" /src/nginx \
-        && wget https://raw.githubusercontent.com/nginx-modules/ngx_http_tls_dyn_size/master/nginx__dynamic_tls_records_"$NGX_TLS_DYN_SIZE"%2B.patch -O /src/nginx/dynamic_tls_records.patch \
-        && sed -i "s|nginx/|NGINX-QuicTLS with ModSec/|g" /src/nginx/src/core/nginx.h \
-        && sed -i "s|Server: nginx|Server: NGINX-QuicTLS with ModSec|g" /src/nginx/src/http/ngx_http_header_filter_module.c \
-        && sed -i "s|<hr><center>nginx</center>|<hr><center>NGINX-QuicTLS with ModSec</center>|g" /src/nginx/src/http/ngx_http_special_response.c \
+        && wget https://raw.githubusercontent.com/nginx-modules/ngx_http_tls_dyn_size/master/"$NGX_TLS_DYN_SIZE" -O /src/nginx/dynamic_tls_records.patch \
+        && sed -i "s|nginx/|NGINX with ModSec/|g" /src/nginx/src/core/nginx.h \
+        && sed -i "s|Server: nginx|Server: NGINX with ModSec|g" /src/nginx/src/http/ngx_http_header_filter_module.c \
+        && sed -i "s|<hr><center>nginx</center>|<hr><center>NGINX with ModSec</center>|g" /src/nginx/src/http/ngx_http_special_response.c \
         && cd /src/nginx \
         && patch -p1 < dynamic_tls_records.patch) 
 RUN cd /src/nginx \
@@ -107,8 +103,7 @@ RUN cd /src/nginx \
         --with-pcre \
         --without-poll_module \
         --without-select_module \
-        --with-openssl="/src/openssl" \
-        --with-openssl-opt="no-ssl3 no-ssl3-method no-weak-ssl-ciphers" \
+        --with-openssl \
         --with-mail=dynamic \
         --with-mail_ssl_module \
         --with-stream=dynamic \
@@ -151,7 +146,8 @@ COPY assets/default.conf /etc/nginx/conf.d/default.conf
 COPY assets/index.html /etc/nginx/html/index.html
 
 RUN addgroup -S nginx \
-	&& adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx
+    && adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx
+
 RUN apk add --no-cache \
     ca-certificates \
     tzdata \
@@ -168,12 +164,13 @@ RUN apk add --no-cache \
     libcurl \
     geoip \
     libmaxminddb-libs 
+
 RUN mkdir -p /var/log/nginx/ \
     && mkdir -p /etc/nginx/modsec \
     && touch /var/log/nginx/access.log \
     && touch /var/log/nginx/error.log \
     && ln -sf /dev/stdout /var/log/nginx/access.log \
-	&& ln -sf /dev/stderr /var/log/nginx/error.log \
+    && ln -sf /dev/stderr /var/log/nginx/error.log \
     && ln -s /usr/lib/nginx/modules /etc/nginx/modules
 
 COPY --from=build /src/ModSecurity/unicode.mapping  /etc/nginx/modsec/unicode.mapping

@@ -1,0 +1,191 @@
+name: NGINX Build and Push
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - Dockerfile
+      - Dockerfile.nonmodsec
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/nginx
+  GHCR_IMAGE: ghcr.io/${{ github.repository }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        build-file:
+          - { file: Dockerfile, suffix: "" }
+          - { file: Dockerfile.nonmodsec, suffix: "-nonmodsec" }
+        platform:
+          - linux/amd64
+          - linux/arm64
+          - linux/arm/v7
+          - linux/arm/v6
+
+    steps:
+      - name: Set PLATFORM env variable
+        id: platform-var
+        run: |
+          PLATFORM="${{ matrix.platform }}"
+          PLATFORM="${PLATFORM//\//-}"
+          echo "PLATFORM=$PLATFORM" >> $GITHUB_ENV
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.DOCKER_IMAGE }}
+            ${{ env.GHCR_IMAGE }}
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push by digests
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          file: ${{ matrix.build-file.file }}
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+           ${{ env.DOCKER_IMAGE }}
+           ${{ env.GHCR_IMAGE}}
+          build-args: |
+            BUILD=${{ github.sha }}-${{ steps.meta.outputs.version }}
+          cache-from: |
+            type=registry,ref=${{ env.DOCKER_IMAGE }}:cache${{ matrix.build-file.suffix }}-${{ env.PLATFORM }}
+            type=registry,ref=${{ env.GHCR_IMAGE }}:cache${{ matrix.build-file.suffix }}-${{ env.PLATFORM }}
+          cache-to: |
+            type=registry,ref=${{ env.DOCKER_IMAGE }}:cache${{ matrix.build-file.suffix }}-${{ env.PLATFORM }},mode=max
+            type=registry,ref=${{ env.GHCR_IMAGE }}:cache${{ matrix.build-file.suffix }}-${{ env.PLATFORM }},mode=max
+          outputs: |
+            type=image,name=${{ env.DOCKER_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+            type=image,name=${{ env.GHCR_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+
+      - name: Export digests
+        run: |
+          mkdir -p ${{ runner.temp }}/digests${{ matrix.build-file.suffix }}
+          digests="${{ steps.build.outputs.digest }}"
+          touch "${{ runner.temp }}/digests${{ matrix.build-file.suffix }}/${digests#sha256:}"
+
+      - name: Upload digests
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests${{ matrix.build-file.suffix }}-${{ env.PLATFORM }}
+          path: ${{ runner.temp }}/digests${{ matrix.build-file.suffix }}/*
+          if-no-files-found: error
+          retention-days: 1
+
+  push:
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      matrix:
+        build-file:
+          - { file: Dockerfile, suffix: "" }
+          - { file: Dockerfile.nonmodsec, suffix: "-nonmodsec" }
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract NGINX mainline version
+        id: nginx-ver
+        run: |
+          ver=$(grep -Eo '^ARG NGX_MAINLINE_VER=[0-9]+\.[0-9]+\.[0-9]+' ${{ matrix.build-file.file }} | cut -d= -f2)
+          if [ -z "$ver" ]; then
+            echo "❌ NGINX mainline version not found"
+            ver="unknown"
+          fi
+          echo "NGX_MAINLINE_VER=$ver" >> $GITHUB_ENV
+          echo "version=$ver" >> $GITHUB_OUTPUT
+
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/digests${{ matrix.build-file.suffix }}
+          pattern: digests${{ matrix.build-file.suffix }}-linux-*
+          merge-multiple: true
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.DOCKER_IMAGE }}
+            ${{ env.GHCR_IMAGE }}
+          tags: |
+            type=raw,value=latest${{ matrix.build-file.suffix }},priority=1000
+            type=raw,value=${{ steps.nginx-ver.outputs.version }}${{ matrix.build-file.suffix }},priority=900
+            type=raw,value=v${{ steps.nginx-ver.outputs.version }}${{ matrix.build-file.suffix }},priority=900
+
+      - name: Create manifest list and push
+        working-directory: ${{ runner.temp }}/digests${{ matrix.build-file.suffix }}
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.DOCKER_IMAGE }}@sha256:%s ' *) \
+            $(printf '${{ env.GHCR_IMAGE }}@sha256:%s ' *)
+
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ env.GHCR_IMAGE }}:${{ steps.meta.outputs.version }}
+          docker buildx imagetools inspect ${{ env.DOCKER_IMAGE }}:${{ steps.meta.outputs.version }}
+
+      - name: Create Git tag and release
+        if: ${{ github.ref == 'refs/heads/main' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="v${{ env.NGX_MAINLINE_VER }}"
+          echo "📦 Creating release for $tag"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "ℹ️ Release $tag already exists. Skipping."
+          else
+            gh release create "$tag" --title "NGINX ${{ env.NGX_MAINLINE_VER }}" --notes "Automated build for NGINX ${{ env.NGX_MAINLINE_VER }}"
+          fi
